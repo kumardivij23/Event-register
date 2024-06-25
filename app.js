@@ -1,18 +1,55 @@
 var events = [];
+var filteredEvents = [];
 var nextId = 1;
-function deleteEvent(id) {
-    events = events.filter(function (event) { return event.id !== id; });
+var itemsPerPage = 5;
+var currentPage = 1;
+function filterAndRenderEvents() {
+    var searchInput = document.getElementById('searchInput');
+    var searchText = searchInput.value.toLowerCase().trim();
+    filteredEvents = events.filter(function (event) {
+        return event.name.toLowerCase().includes(searchText) ||
+            event.date.includes(searchText) ||
+            event.time.includes(searchText);
+    });
+    currentPage = 1; // Reset to first page when filtering
     renderEvents();
 }
-function renderEvents() {
+function deleteEvent(id) {
+    events = events.filter(function (event) { return event.id !== id; });
+    filterAndRenderEvents();
+}
+function renderEvents(page) {
+    if (page === void 0) { page = 1; }
     var eventTableBody = document.getElementById('eventTableBody');
     eventTableBody.innerHTML = '';
-    events.forEach(function (event) {
+    var startIndex = (page - 1) * itemsPerPage;
+    var endIndex = startIndex + itemsPerPage;
+    var paginatedEvents = filteredEvents.slice(startIndex, endIndex);
+    paginatedEvents.forEach(function (event) {
         var row = document.createElement('tr');
         row.dataset.id = event.id.toString();
         row.innerHTML = "\n            <td><input type=\"text\" class=\"form-control\" value=\"".concat(event.name, "\" disabled></td>\n            <td><input type=\"date\" class=\"form-control\" value=\"").concat(event.date, "\" disabled></td>\n            <td><input type=\"time\" class=\"form-control\" value=\"").concat(event.time, "\" disabled></td>\n            <td>\n                <button class=\"btn btn-warning btn-sm\" onclick=\"toggleEditMode(").concat(event.id, ")\">Edit</button>\n                <button class=\"btn btn-danger btn-sm\" onclick=\"deleteEvent(").concat(event.id, ")\">Delete</button>\n                <button class=\"btn btn-success btn-sm\" onclick=\"saveEvent(").concat(event.id, ")\" style=\"display:none;\">Save</button>\n                <button class=\"btn btn-secondary btn-sm\" onclick=\"cancelEdit(").concat(event.id, ")\" style=\"display:none;\">Cancel</button>\n            </td>\n        ");
         eventTableBody.appendChild(row);
     });
+    renderPagination();
+}
+function renderPagination() {
+    var pagination = document.getElementById('pagination');
+    pagination.innerHTML = '';
+    var totalPages = Math.ceil(filteredEvents.length / itemsPerPage);
+    var _loop_1 = function (i) {
+        var pageItem = document.createElement('li');
+        pageItem.className = "page-item ".concat(i === currentPage ? 'active' : '');
+        pageItem.innerHTML = "<a class=\"page-link\" href=\"#\">".concat(i, "</a>");
+        pageItem.addEventListener('click', function () {
+            currentPage = i;
+            renderEvents(i);
+        });
+        pagination.appendChild(pageItem);
+    };
+    for (var i = 1; i <= totalPages; i++) {
+        _loop_1(i);
+    }
 }
 function scheduleNotification(event) {
     var eventTime = new Date("".concat(event.date, "T").concat(event.time));
@@ -70,17 +107,19 @@ function saveEvent(id) {
     };
     var eventIndex = events.findIndex(function (event) { return event.id === id; });
     events[eventIndex] = updatedEvent;
-    renderEvents();
+    filterAndRenderEvents();
 }
 function cancelEdit(id) {
-    renderEvents();
+    filterAndRenderEvents();
 }
 document.addEventListener('DOMContentLoaded', function () {
     var eventForm = document.getElementById('eventForm');
+    var searchInput = document.getElementById('searchInput');
     eventForm.addEventListener('submit', function (e) {
         e.preventDefault();
         addEvent();
     });
+    searchInput.addEventListener('input', filterAndRenderEvents);
     function addEvent() {
         var eventNameInput = document.getElementById('eventName');
         var eventDateInput = document.getElementById('eventDate');
@@ -92,7 +131,7 @@ document.addEventListener('DOMContentLoaded', function () {
             time: eventTimeInput.value
         };
         events.push(newEvent);
-        renderEvents();
+        filterAndRenderEvents();
         scheduleNotification(newEvent);
         eventForm.reset();
     }
