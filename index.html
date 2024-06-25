@@ -38,6 +38,7 @@
         </div>
     </div>
     <h2 class="mt-5">Event List</h2>
+    <input type="text" id="searchInput" class="form-control mb-3" placeholder="Search events">
     <table id="eventTable" class="table table-bordered">
         <thead>
             <tr>
@@ -51,6 +52,11 @@
             <!-- Event data will be dynamically added here -->
         </tbody>
     </table>
+    <nav>
+        <ul class="pagination" id="pagination">
+            <!-- Pagination items will be dynamically added here -->
+        </ul>
+    </nav>
 </div>
 <audio id="notificationSound">
     <source src="mixkit-bell-notification-933.mp3" type="audio/mpeg">
