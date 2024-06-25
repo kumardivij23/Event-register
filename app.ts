@@ -6,17 +6,39 @@ interface EventItem {
 }
 
 let events: EventItem[] = [];
+let filteredEvents: EventItem[] = [];
 let nextId = 1;
+const itemsPerPage = 5;
+let currentPage = 1;
 
-function deleteEvent(id: number) {
-    events = events.filter(event => event.id !== id);
+function filterAndRenderEvents() {
+    const searchInput = document.getElementById('searchInput') as HTMLInputElement;
+    const searchText = searchInput.value.toLowerCase().trim();
+
+    filteredEvents = events.filter(event =>
+        event.name.toLowerCase().includes(searchText) ||
+        event.date.includes(searchText) ||
+        event.time.includes(searchText)
+    );
+
+    currentPage = 1; // Reset to first page when filtering
     renderEvents();
 }
 
-function renderEvents() {
+
+function deleteEvent(id: number) {
+    events = events.filter(event => event.id !== id);
+    filterAndRenderEvents();
+}
+
+function renderEvents(page: number = 1) {
     const eventTableBody = document.getElementById('eventTableBody') as HTMLTableSectionElement;
     eventTableBody.innerHTML = '';
-    events.forEach(event => {
+    const startIndex = (page - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const paginatedEvents = filteredEvents.slice(startIndex, endIndex);
+
+    paginatedEvents.forEach(event => {
         const row = document.createElement('tr');
         row.dataset.id = event.id.toString();
 
@@ -34,6 +56,25 @@ function renderEvents() {
 
         eventTableBody.appendChild(row);
     });
+
+    renderPagination();
+}
+
+function renderPagination() {
+    const pagination = document.getElementById('pagination') as HTMLUListElement;
+    pagination.innerHTML = '';
+    const totalPages = Math.ceil(filteredEvents.length / itemsPerPage);
+
+    for (let i = 1; i <= totalPages; i++) {
+        const pageItem = document.createElement('li');
+        pageItem.className = `page-item ${i === currentPage ? 'active' : ''}`;
+        pageItem.innerHTML = `<a class="page-link" href="#">${i}</a>`;
+        pageItem.addEventListener('click', () => {
+            currentPage = i;
+            renderEvents(i);
+        });
+        pagination.appendChild(pageItem);
+    }
 }
 
 function scheduleNotification(event: EventItem) {
@@ -104,20 +145,23 @@ function saveEvent(id: number) {
     const eventIndex = events.findIndex(event => event.id === id);
     events[eventIndex] = updatedEvent;
 
-    renderEvents();
+    filterAndRenderEvents();
 }
 
 function cancelEdit(id: number) {
-    renderEvents();
+    filterAndRenderEvents();
 }
 
 document.addEventListener('DOMContentLoaded', () => {
     const eventForm = document.getElementById('eventForm') as HTMLFormElement;
+    const searchInput = document.getElementById('searchInput') as HTMLInputElement;
 
     eventForm.addEventListener('submit', (e) => {
         e.preventDefault();
         addEvent();
     });
+
+    searchInput.addEventListener('input', filterAndRenderEvents);
 
     function addEvent() {
         const eventNameInput = document.getElementById('eventName') as HTMLInputElement;
@@ -132,7 +176,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         events.push(newEvent);
-        renderEvents();
+        filterAndRenderEvents();
         scheduleNotification(newEvent);
         eventForm.reset();
     }
@@ -145,3 +189,4 @@ document.addEventListener('DOMContentLoaded', () => {
     (window as any).saveEvent = saveEvent;
     (window as any).cancelEdit = cancelEdit;
 });
+
